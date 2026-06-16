@@ -409,6 +409,8 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xd:desc>Handle incremental change to HTML input</xd:desc>
     </xd:doc>
     <xsl:template match="(*:input|*:textarea)[xforms:hasClass(.,'incremental')]" mode="ixsl:onkeyup">
+        <!--<xsl:variable name="key" select="ixsl:get(ixsl:event(), 'key')" />
+        <xsl:message use-when="$debugMode">KEY PRESS: <xsl:value-of select="$key"/></xsl:message>-->
         <xsl:call-template name="action-setvalue-form-control">
             <xsl:with-param name="form-control" select="."/>
             <xsl:with-param name="default-namespace-context" as="element()" select="js:getXFormsDoc()/*" tunnel="yes"/>
@@ -417,6 +419,16 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:with-param name="default-namespace-context" as="element()" select="js:getXFormsDoc()/*" tunnel="yes"/>
         </xsl:call-template>
     </xsl:template>
+    
+    <!-- 
+        This is nice but can't yet see a way of tying it to the submission
+        
+        https://www.saxonica.com/saxonjs/documentation3/index.html#!ixsl-extension/functions/event
+    -->
+    <!--<xsl:template match="*:input[ixsl:get(ixsl:event(), 'key') = 'Enter']" mode="ixsl:onkeyup">
+        <xsl:variable name="key" select="ixsl:get(ixsl:event(), 'key')" />
+        <xsl:message use-when="$debugMode">KEY PRESS: <xsl:sequence select="$key"/></xsl:message>
+    </xsl:template>-->
 
 
     <xd:doc scope="component">
@@ -556,7 +568,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 </xsl:otherwise>
             </xsl:choose>           
         </xsl:variable>
-        
+
         <!-- 
             Try to identify the instance context ID
             by parsing $refi for "instance(' ... ')"
@@ -577,11 +589,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         
         <!-- 
             Identify bindings for this xform element.
-            Include any binding without an explicit instance context,
+            Include any binding without ID and without an explicit instance context,
             since these default to the instance context 
             for this xform element.
         -->
-        <xsl:variable name="bindings-this-instance" as="element(xforms:bind)*" select="$bindings-js[@instance-context = $instance-context or empty(@instance-context)]"/>           
+        <xsl:variable name="bindings-this-instance" as="element(xforms:bind)*" select="$bindings-js[@instance-context = $instance-context or (empty(@id) and empty(@instance-context))]"/>           
          
         <xsl:variable name="binding-matching-nodeset" as="element(xforms:bind)?">
             <xsl:choose>
@@ -1470,6 +1482,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:call-template name="getRelevantStatus">
                 <xsl:with-param name="xformsControl" as="element()" select="."/>
                 <xsl:with-param name="instanceField" as="node()?" select="$instanceField"/>
+                <xsl:with-param name="namespace-context" as="element()" select="$namespace-context"/>
             </xsl:call-template>
         </xsl:variable>
         <xsl:sequence use-when="$debugTiming" select="js:endTime($time-id-get-relevant)" />
@@ -1538,6 +1551,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:call-template name="getRelevantStatus">
                 <xsl:with-param name="xformsControl" as="element()" select="."/>
                 <xsl:with-param name="instanceField" as="node()?" select="$instanceField"/>
+                <xsl:with-param name="namespace-context" as="element()" select="$namespace-context"/>
             </xsl:call-template>
         </xsl:variable>
         
@@ -1685,6 +1699,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:call-template name="getRelevantStatus">
                 <xsl:with-param name="xformsControl" as="element()" select="."/>
                 <xsl:with-param name="instanceField" as="node()?" select="$instanceField"/>
+                <xsl:with-param name="namespace-context" as="element()" select="$namespace-context"/>
             </xsl:call-template>
         </xsl:variable>
         
@@ -1799,6 +1814,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:call-template name="getRelevantStatus">
                 <xsl:with-param name="xformsControl" as="element()" select="."/>
                 <xsl:with-param name="instanceField" as="node()?" select="$instanceField"/>
+                <xsl:with-param name="namespace-context" as="element()" select="$namespace-context"/>
             </xsl:call-template>
         </xsl:variable>
         
@@ -1974,6 +1990,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xd:desc>
             <xd:p>Template for xforms:item element.</xd:p>
             <xd:p>Generates HTML option element.</xd:p>
+            <xd:p>TO DO: I want to bind an item to an element in a repeat, but it's not working. The index() function needs to be hooked up somehow.</xd:p>
         </xd:desc>
         <xd:param name="selectedValue">String consisting of the current selection in the list. (If it matches the value of the xforms:item, the HTML option will be marked as selected.)</xd:param>
     </xd:doc>
@@ -2109,6 +2126,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:call-template name="getRelevantStatus">
                 <xsl:with-param name="xformsControl" as="element()" select="."/>
                 <xsl:with-param name="instanceField" as="node()?" select="$instanceField"/>
+                <xsl:with-param name="namespace-context" as="element()" select="$namespace-context"/>
             </xsl:call-template>
         </xsl:variable>
         
@@ -2288,6 +2306,15 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         
         <xsl:message use-when="$debugMode">[xforms:submit] Comparing ID with submissions map '<xsl:sequence select="string-join(map:keys($submissions),', ')"/>'</xsl:message>-->
         
+        <xsl:variable name="properties" as="map(*)">
+            <xsl:apply-templates select="." mode="get-properties"/>
+        </xsl:variable>
+        
+        <xsl:variable name="nodeset" as="xs:string" select="map:get($properties,'nodeset')"/>
+        <xsl:variable name="instance-context" as="xs:string" select="map:get($properties,'instance-context')"/>
+        <xsl:variable name="bindingi" as="element(xforms:bind)?" select="map:get($properties,'binding')"/>
+        
+        
         <xsl:variable name="innerbody">
             <xsl:apply-templates select="xforms:label"/>
         </xsl:variable>
@@ -2306,6 +2333,12 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                         <xsl:message use-when="$debugMode">[xforms:submit] Submission found</xsl:message>
                         <xsl:attribute name="data-submit" select="$submission-id"/>
                     </xsl:if>
+                    <xsl:attribute name="instance-context" select="$instance-context"/>
+                    <xsl:attribute name="data-ref" select="$nodeset"/>
+                    <xsl:if test="exists($bindingi) and exists($bindingi/@relevant)">
+                        <xsl:attribute name="data-relevant" select="$bindingi/@relevant"/>
+                    </xsl:if>
+                    
                     <xsl:copy-of select="$innerbody"/>
                 </button>
             </xsl:otherwise>
@@ -2858,20 +2891,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     <xsl:template name="getRelevantStatus" as="xs:boolean">
         <xsl:param name="xformsControl" as="element()" required="yes"/>
         <xsl:param name="instanceField" as="node()?"/>
-        <xsl:param name="binding" as="element(xforms:bind)*" tunnel="yes"/>
+        <xsl:param name="binding" as="element(xforms:bind)?" tunnel="yes"/>
+        <xsl:param name="namespace-context" as="element()?"/>
         
         <xsl:variable name="time-id-ns-context" as="xs:string" select="concat('getRelevantStatus (get namespace context)) ', generate-id())"/>
         <xsl:sequence use-when="$debugTiming" select="js:startTime($time-id-ns-context)" />
-        
-        <xsl:variable name="namespace-context-item" as="node()" select="
-            if (exists($instanceField))
-            then (
-            if ($instanceField[self::text()])
-            then $instanceField/parent::*
-            else $instanceField
-            )
-            else /*"/>
-        <!-- fallback was xforms:addNamespaceDeclarations(/*) which is SLOW -->
         
         <xsl:sequence use-when="$debugTiming" select="js:endTime($time-id-ns-context)" />
         
@@ -2883,7 +2907,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 <xsl:sequence select="false()"/>
             </xsl:when>
             <xsl:when test="exists($binding) and exists($binding/@relevant)">
-                <xsl:evaluate xpath="xforms:impose($binding/@relevant)" context-item="$instanceField" namespace-context="$namespace-context-item"/>
+                <xsl:evaluate xpath="xforms:impose($binding/@relevant)" context-item="$instanceField" namespace-context="$namespace-context"/>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:sequence select="true()"/>
@@ -3084,6 +3108,21 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             </xsl:if>-->
             
             <xsl:choose>
+                <!-- disable/enable button -->
+                <xsl:when test="self::xhtml:button">
+                    <xsl:variable name="class" as="xs:string" select="string(@class)"/>
+                    <xsl:choose>
+                        <xsl:when test="$relevantStatus">
+                            <xsl:message use-when="$debugMode">[button relevance] ENABLED</xsl:message>
+                            <ixsl:remove-attribute name="disabled" object="."/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:message use-when="$debugMode">[button relevance] DISABLED</xsl:message>
+                            <ixsl:set-attribute name="disabled" select="'true'" object="."/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    
+                </xsl:when>
                 <xsl:when test="$relevantStatus">
                     <xsl:if test="ixsl:style(.)?display = 'none'">
                         <xsl:message use-when="$debugMode">[refreshRelevantFields-JS] removing display="none"</xsl:message>
@@ -3449,6 +3488,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         
         <xsl:variable name="refi" as="xs:string" select="map:get($properties,'nodeset')"/>
         <xsl:variable name="this-instance-id" as="xs:string" select="map:get($properties,'instance-context')"/>
+        <xsl:variable name="bindingi" as="element(xforms:bind)?" select="map:get($properties,'binding')"/>
         
         <!-- set actions relevant to this -->
         <xsl:variable name="actions"  as="map(*)*">
@@ -3469,8 +3509,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             
             <xsl:map-entry key="'@ref'" select="if (exists($refi)) then $refi else '/'"/>
             
-            <xsl:if test="exists($this/@bind)">
+            <!--<xsl:if test="exists($this/@bind)">
                 <xsl:map-entry key="'@bind'" select="xs:string($this/@bind)" />
+            </xsl:if>-->
+            <xsl:if test="exists($bindingi)">
+                <xsl:map-entry key="'binding'" select="$bindingi"/>
             </xsl:if>
             
             <xsl:map-entry key="'@mode'" select="if (exists($this/@mode)) then xs:string($this/@mode) else 'asynchronous'" />
@@ -4147,6 +4190,28 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:call-template name="serverError">
             <xsl:with-param name="responseMap" select="$http-response"/>
         </xsl:call-template>
+    </xsl:function>
+    
+    <xd:doc scope="component">
+        <xd:desc>
+            <xd:p>Function xforms:toggleClass() adds or removes a value from an HTML @class attribute.</xd:p>
+        </xd:desc>
+        <xd:param name="this-class">Existing class value.</xd:param>
+        <xd:param name="check-value">Value(s) to add/remove</xd:param>
+        <xd:param name="toggle">Either 'add' or 'remove'.</xd:param>
+        <xd:return>Class with the checked value(s) added or removed.</xd:return>
+    </xd:doc>
+    <xsl:function name="xforms:toggleClass" as="xs:string?">
+        <xsl:param name="this-class" as="xs:string"/>
+        <xsl:param name="check-value" as="xs:string"/>
+        <xsl:param name="toggle" as="xs:string"/>
+        
+        <xsl:variable name="class-components" as="xs:string*" select="fn:tokenize($this-class,'\s+')"/>
+        <xsl:variable name="check-components" as="xs:string*" select="fn:tokenize($check-value,'\s+')"/>
+        
+        <xsl:variable name="new-components" as="xs:string*" select="if ($toggle eq 'remove') then $class-components[not(. = $check-components)] else ($class-components[normalize-space(.) ne ''],$check-components)"/>
+        
+        <xsl:sequence select="if (empty($new-components)) then () else fn:string-join($new-components,' ')"/>
     </xsl:function>
     
     <xd:doc scope="component">
