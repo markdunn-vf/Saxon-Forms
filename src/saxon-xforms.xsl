@@ -81,6 +81,24 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     <!-- @id attribute of HTML div element into which the XForm is to be rendered on the page -->
     <xsl:param name="xform-html-id" as="xs:string" select="'xForm'" required="no"/>
     
+    <!-- @id attribute of HTML div element into which modal messages are to be rendered on the page -->
+    <xsl:param name="xform-modal-id" as="xs:string" select="'xForm-modal'" required="no"/>
+    <!-- 
+        @id attribute of HTML p element into which modal messages are to be rendered on the page 
+        
+        We want to show/hide at parent level
+        but replace the message at p level
+        so the close button remains active
+        
+        <div id="xForm-modal">
+        <p class="modal-banner">
+            <span id="close-modal">[Close]</span>     
+        </p>
+        <p id="xForm-modal-message">[message]</p>
+    </div>
+    -->
+    <xsl:param name="xform-modal-message-id" as="xs:string" select="'xForm-modal-message'" required="no"/>
+    
     <!-- path to XForms file external to HTML (used when HTML document is the source for the transformation) -->
     <xsl:param name="xforms-file-global" as="xs:string?"/>
     
@@ -2766,6 +2784,26 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     </xsl:template>
     
     <xd:doc scope="component">
+        <xd:desc>Write modal message to HTML page for the user.</xd:desc>
+        <xd:param name="message">String message.</xd:param>
+        <xd:param name="level">Optional string indicating level of severity, e.g. "error". Default value is "info".</xd:param>
+    </xd:doc>
+    <xsl:template name="logToModal">
+        <xsl:param name="message" as="xs:string"/>
+        <xsl:param name="level" as="xs:string" required="no" select="'info'"/>
+        
+        <xsl:variable name="modal" as="element()?" select="ixsl:page()//*[@id = $xform-modal-id]"/>
+        <xsl:if test="exists($modal) and ixsl:style($modal)?display = 'none'">
+            <ixsl:remove-property name="style.display" object="$modal"/>
+            <ixsl:remove-attribute name="style" object="$modal"/>
+        </xsl:if>
+        
+        <xsl:result-document href="#{$xform-modal-message-id}" method="ixsl:replace-content">
+            <xsl:sequence select="$message"/>
+        </xsl:result-document>
+    </xsl:template>
+    
+    <xd:doc scope="component">
         <xd:desc>Find string in HTML @class attribute.</xd:desc>
         <xd:return>True if $string is one of the values of $class</xd:return>
         <xd:param name="element">HTML element that may have a @class attribute (e.g. class="block incremental")</xd:param>
@@ -5019,7 +5057,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                     <xsl:with-param name="message" select="$message-value"/>
                 </xsl:call-template>
             </xsl:when>
-            <xsl:when test="$message-level = 'modal'"/>
+            <xsl:when test="$message-level = 'modal'">
+                <xsl:call-template name="logToModal">
+                    <xsl:with-param name="message" select="$message-value"/>
+                </xsl:call-template>
+            </xsl:when>
             <xsl:when test="$message-level = 'modeless'"/>
             <xsl:otherwise/>
         </xsl:choose>

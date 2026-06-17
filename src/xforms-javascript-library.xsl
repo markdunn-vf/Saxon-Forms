@@ -423,5 +423,13 @@
             alert(message);
          }
          
+         var close = document.getElementById("close-modal");
+         var modal = document.getElementById("xForm-modal");
+         modal.style.display = "none";
+         close.onclick = function() {
+            modal.style.display = "none";
+         }
+         
+         
     </xsl:variable>
 </xsl:stylesheet>
