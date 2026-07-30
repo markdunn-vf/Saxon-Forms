@@ -2133,7 +2133,7 @@
         <xsl:param name="model-key" as="xs:string" required="no" select="$global-default-model-id" tunnel="yes"/>        
         <xsl:param name="nodeset" as="xs:string" required="no" select="''" tunnel="yes"/>
         <xsl:param name="position" as="xs:integer" required="no" select="0"/>
-        <xsl:param name="context-position" as="xs:string" required="no" select="''"/>
+        <xsl:param name="context-position" as="xs:string" required="no" select="''" tunnel="yes"/>
         <xsl:param name="recalculate" as="xs:boolean" required="no" select="fn:false()" tunnel="yes"/>
         <xsl:param name="refreshRepeats" as="xs:boolean" required="no" select="fn:false()" tunnel="yes"/>
         <xsl:param name="default-namespace-context" as="element()" required="yes" tunnel="yes"/>
