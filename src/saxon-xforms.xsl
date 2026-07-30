@@ -852,6 +852,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                     <xsl:map-entry key="'nested-actions'">
                         <xsl:variable name="array" as="map(*)*">
                             <xsl:for-each select="child::node()[self::* or self::text()[parent::xforms:message]]">
+                                <!--<xsl:message>[set-action] getting nested action for '<xsl:value-of select="."/>'</xsl:message>-->
                                 <xsl:apply-templates select="." mode="set-action">
                                     <xsl:with-param name="default-instance-id" select="$this-instance-id" tunnel="yes"/>
                                     <xsl:with-param name="nodeset" select="$refi" tunnel="yes"/>
@@ -887,6 +888,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     </xd:doc>
     <xsl:template match="text()" mode="set-action">
         <xsl:param name="default-namespace-context" as="element()" required="yes" tunnel="yes"/>
+        <!--<xsl:message>[text() in set-action mode] text node in message: '<xsl:value-of select="."/>'</xsl:message>-->
         <xsl:map>
             <xsl:map-entry key="'name'" select="'text'"/>    
             <xsl:map-entry key="'instance-context'" select="$global-default-instance-id"/>    
@@ -1282,16 +1284,13 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                           <!--        <xsl:message use-when="$debugMode">[xforms-value-changed] Updated XML: <xsl:sequence select="serialize($updatedInstanceXML)"/></xsl:message>-->
                           
                           <xsl:sequence select="js:setInstance($instance-id,$updatedInstanceXML)"/>
-
                       </xsl:when>
                       <!-- TO DO: replace node or text within instance; replace entire page -->
                       <xsl:otherwise>
                           <!--<xsl:message use-when="$debugMode">[HTTPsubmit] response = <xsl:sequence select="serialize($response)"/></xsl:message>-->
                        </xsl:otherwise>
                   </xsl:choose>
- 
                   <xsl:call-template name="xforms-submit-done"/>
-                  
               </xsl:otherwise>
           </xsl:choose>
       </xsl:template>
@@ -2181,7 +2180,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     </xd:doc>
     <xsl:template match="xforms:repeat">
         <xsl:param name="position" as="xs:integer" required="no" select="0"/>
-        <xsl:param name="context-position" as="xs:string" required="no" select="''"/>
+        <xsl:param name="context-position" as="xs:string" required="no" select="''" tunnel="yes"/>
         <xsl:param name="recalculate" as="xs:boolean" required="no" select="fn:false()" tunnel="yes"/>
         <xsl:param name="refreshRepeats" as="xs:boolean" required="no" select="fn:false()" tunnel="yes"/>
         
@@ -2244,6 +2243,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:for-each select="$selectedRepeatVar">
                 <xsl:variable name="string-position" as="xs:string" select="string(position())"/>
                 <xsl:variable name="new-context-position" as="xs:string" select="if ($context-position != '') then concat($context-position, '.', $string-position) else $string-position"/>
+                <xsl:message use-when="$debugMode">[xforms:repeat] $context-position = '<xsl:sequence select="$context-position"/>'; $new-context-position = '<xsl:sequence select="$new-context-position"/>'</xsl:message>
                 <div data-repeat-item="true">
                     <xsl:sequence select="$this/@class"/>
                     <xsl:apply-templates select="$this/child::node()">
@@ -3091,11 +3091,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:variable name="this-repeat-nodeset" as="xs:string" select="js:getRepeatContext($this-key)"/>
             <xsl:variable name="this-repeat-model" as="xs:string" select="js:getRepeatModelContext($this-key)"/>
             
-            <xsl:variable name="page-element" select="ixsl:page()//*[@id = $this-key]" as="node()?"/>
+            <xsl:variable name="page-element" select="ixsl:page()//*[@id = $this-key]" as="node()*"/>
             
             
             <xsl:choose>
-                <xsl:when test="exists($page-element)">
+                <xsl:when test="count($page-element) = 1">
                     <xsl:result-document href="#{$this-key}" method="ixsl:replace-content">
                         <xsl:apply-templates select="$this-repeat">
                             <xsl:with-param name="model-key" select="$this-repeat-model" tunnel="yes"/>
@@ -3105,6 +3105,9 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                             <xsl:with-param name="default-namespace-context" select="$namespace-context-item" tunnel="yes"/>
                         </xsl:apply-templates>
                     </xsl:result-document>
+                </xsl:when>
+                <xsl:when test="count($page-element) > 1">
+                    <xsl:message>[refreshRepeats-JS] ERROR: more than one item on page with ID '<xsl:value-of select="$this-key"/>'</xsl:message>
                 </xsl:when>
                 <xsl:otherwise/>
             </xsl:choose>
@@ -4750,7 +4753,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         
         <xsl:variable name="instanceXML" as="element()" select="xforms:instance($instance-context)"/>
         
-        <!--<xsl:message use-when="$debugMode">[action-insert] $ref = '<xsl:value-of select="$ref"/>'; inserting node at XPath <xsl:value-of select="$ref-qualified"/></xsl:message>-->
+        <!--<xsl:message use-when="$debugMode">[action-insert] $ref = '<xsl:value-of select="$ref"/>'; inserting node at XPath <xsl:value-of select="$ref-qualified"/>; origin '<xsl:sequence select="$origin-ref"/>'</xsl:message>-->
                
         
         <xsl:variable name="instance-id-origin" as="xs:string?" select="if(exists($origin-ref)) then xforms:getInstanceId($origin-ref) else ()"/>
@@ -5037,6 +5040,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <!--<xsl:variable name="message-value" as="xs:string" select="map:get($action-map,'value')">
             -->
             <xsl:for-each select="$nested-actions">
+                <!--<xsl:message>[action-message] nested action name = <xsl:value-of select="map:get(.,'name')"/>; value = '<xsl:value-of select="map:get(.,'@value')"/>'</xsl:message>-->
                 <xsl:call-template name="applyActions">
                     <xsl:with-param name="action-map" select="." tunnel="yes"/>
                 </xsl:call-template>
