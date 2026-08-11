@@ -1816,7 +1816,6 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="binding" as="element(xforms:bind)?" select="map:get($properties,'binding')"/>
         <xsl:variable name="namespace-context" as="element()" select="map:get($properties,'namespace-context')"/>
         
-        
         <xsl:variable name="instanceField" as="node()?" select="xforms:evaluate-xpath-with-instance-id($nodeset,$instance-context,$namespace-context)"/>                
         
         <xsl:variable name="selectedValue" as="xs:string">
@@ -3205,7 +3204,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 </xsl:when>
                 <xsl:otherwise>
                     <ixsl:set-style name="display" select="'none'" object="."/>
-                    <xsl:if test="exists($htmlWrapper[self::xhtml:span])">
+                    <xsl:if test="exists($htmlWrapper[self::xhtml:span or self::xhtml:div/xhtml:select])">
                         <ixsl:set-style name="display" select="'none'" object="$htmlWrapper"/>
                     </xsl:if>
                 </xsl:otherwise>
