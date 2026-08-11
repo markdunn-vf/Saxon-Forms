@@ -586,7 +586,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 </xsl:otherwise>
             </xsl:choose>           
         </xsl:variable>
-
+        
         <!-- 
             Try to identify the instance context ID
             by parsing $refi for "instance(' ... ')"
@@ -1468,7 +1468,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 <xsl:otherwise/>
             </xsl:choose>
         </xsl:variable>
-        
+                
         <xsl:sequence use-when="$debugTiming" select="js:endTime($time-id-instance-field)" />
         
         
@@ -1489,7 +1489,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
-        
+                
         <xsl:sequence use-when="$debugTiming" select="js:endTime($time-id-get-value)" />
         
         <xsl:variable name="time-id-get-relevant" as="xs:string" select="concat('XForms ', local-name(), ' get relevant status ', generate-id())"/>
@@ -1537,9 +1537,12 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <!-- register outputs (except those inside a repeat) -->
         <xsl:variable name="time-id-register-outputs" as="xs:string" select="concat('XForms ', local-name(), ' get relevant status ', generate-id())"/>
         
-        <xsl:call-template name="registerOutput">
-            <xsl:with-param name="additional-class-values" select="$additional-class-values"/>
-        </xsl:call-template>
+        <xsl:if test="not(ancestor::xforms:itemset)">
+            <xsl:call-template name="registerOutput">
+                <xsl:with-param name="additional-class-values" select="$additional-class-values"/>
+            </xsl:call-template>
+        </xsl:if>
+       
                
         <xsl:message use-when="$debugMode"><xsl:sequence select="$log-label"/> END</xsl:message>
     </xsl:template>
@@ -1856,7 +1859,6 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <select>
                 <xsl:apply-templates select="xforms:hint" mode="control-title"/>
                 <xsl:attribute name="id" select="$id"/>
-                <xsl:attribute name="class" select="$htmlClass"/>
                 <xsl:attribute name="instance-context" select="$instance-context"/>
                 <xsl:attribute name="data-ref" select="$nodeset"/>
                 
@@ -1884,7 +1886,9 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 <xsl:apply-templates select="xforms:item" mode="#current">
                     <xsl:with-param name="selectedValue" select="$selectedValue"/>
                 </xsl:apply-templates>
-                <xsl:apply-templates select="xforms:itemset" mode="#current"/>
+                <xsl:apply-templates select="xforms:itemset" mode="#current">
+                    <xsl:with-param name="properties" select="$properties"/>
+                </xsl:apply-templates>
                 
             </select>
             
@@ -1917,8 +1921,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="properties" as="map(*)">
             <xsl:apply-templates select="." mode="get-properties"/>
         </xsl:variable>
-        
-       <xsl:variable name="refi" as="xs:string" select="map:get($properties,'nodeset')"/>
+        <xsl:variable name="refi" as="xs:string" select="map:get($properties,'nodeset')"/>
         <xsl:variable name="this-instance-id" as="xs:string" select="map:get($properties,'instance-context')"/>
         <xsl:variable name="bindingi" as="element(xforms:bind)?" select="map:get($properties,'binding')"/>
         <xsl:variable name="namespace-context" as="element()" select="map:get($properties,'namespace-context')"/>
@@ -2036,8 +2039,8 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     </xd:doc>
     <xsl:template match="xforms:itemset" mode="get-html">
         <xsl:param name="properties" as="map(*)?"/>
-        <xsl:param name="default-namespace-context" as="element()?" required="no"/>
-        <xsl:variable name="namespace-context" as="element()" select="(map:get($properties,'namespace-context'),$default-namespace-context)[1]"/>
+        <xsl:param name="default-namespace-context" as="element()?" required="no" tunnel="yes"/>
+        <xsl:variable name="namespace-context" as="element()" select="if (exists($properties)) then map:get($properties,'namespace-context') else $default-namespace-context"/>
         
         <xsl:message use-when="$debugMode">[xforms:itemset] Generate HTML for itemset</xsl:message>
         
@@ -2160,7 +2163,9 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             </xsl:if>
             
             <xsl:sequence select="@class"/>
-            <xsl:apply-templates select="child::node()"/>
+            <xsl:apply-templates select="child::node()">
+                <xsl:with-param name="nodeset" as="xs:string" select="$nodeset" tunnel="yes"/>
+            </xsl:apply-templates>
         </div>
         
         <xsl:message use-when="$debugMode"><xsl:sequence select="$log-label"/> END</xsl:message>
@@ -2665,10 +2670,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     </xd:doc>
     <xsl:template match="*:select" mode="set-field">
         <xsl:param name="value" select="''" tunnel="yes"/>
+        
+        <xsl:message use-when="$debugMode">[mode set-field for select] Setting select value for '<xsl:value-of select="@id"/>' to '<xsl:sequence select="$value"/>'</xsl:message>
 
         <xsl:for-each select="./option[@value = $value]">
-            <ixsl:set-property name="selected" select="true()" object="."/>
-        </xsl:for-each>
+            <ixsl:set-property name="selected" select="true()" object="."/>        </xsl:for-each>
     </xsl:template>
 
     <xd:doc scope="component">
@@ -2709,7 +2715,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             https://www.mulberrytech.com/quickref/regex.pdf
             
             -->
-            <xsl:analyze-string select="$this/@ref" regex="\i\c*\(">
+            <xsl:analyze-string select="$this/(@ref|@nodeset|@data-ref)[1]" regex="\i\c*\(">
                 <xsl:matching-substring>
                     <xsl:choose>
                         <xsl:when test="substring-before(.,'(')= 'index'">
@@ -2721,7 +2727,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 <xsl:non-matching-substring/>
             </xsl:analyze-string>
             
-            <xsl:analyze-string select="$this/@nodeset" regex="\i\c*\(">
+            <!--<xsl:analyze-string select="$this/@nodeset" regex="\i\c*\(">
                 <xsl:matching-substring>
                     <xsl:choose>
                         <xsl:when test="substring-before(.,'(')= 'index'">
@@ -2731,7 +2737,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                     </xsl:choose>
                 </xsl:matching-substring>
                 <xsl:non-matching-substring/>
-            </xsl:analyze-string>
+            </xsl:analyze-string>-->
         </xsl:variable>
         
         <xsl:sequence select="if (exists($index-function-match)) then true() else false()"/>
@@ -2978,16 +2984,22 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:variable name="this-output" as="map(*)" select="js:getOutput($this-key)"/>
             
             <xsl:variable name="log-label" as="xs:string" select="'[refreshOutputs-JS]'"/>
-            <xsl:message use-when="$debugMode"><xsl:sequence select="$log-label"/> Refreshing output ID = '<xsl:sequence select="$this-key"/>' (@value = <xsl:sequence select="map:get($this-output,'@value')"/>; @ref = <xsl:sequence select="map:get($this-output,'@ref')"/>; @data-type =  <xsl:sequence select="map:get($this-output,'@data-type')"/>; @instance-context =  <xsl:sequence select="map:get($this-output,'@instance-context')"/>)</xsl:message>
             
+            <xsl:message use-when="$debugMode"><xsl:sequence select="$log-label"/> Refreshing output ID = '<xsl:sequence select="$this-key"/>' (@value = <xsl:sequence select="map:get($this-output,'@value')"/>; @ref = <xsl:sequence select="map:get($this-output,'@ref')"/>; @data-type =  <xsl:sequence select="map:get($this-output,'@data-type')"/>; @instance-context =  <xsl:sequence select="map:get($this-output,'@instance-context')"/>)</xsl:message>
+                     
+            <xsl:variable name="xpath-ref" as="xs:string?" select="map:get($this-output,'@ref')"/>         
+            <xsl:variable name="xpath-value" as="xs:string?" select="map:get($this-output,'@value')"/> 
             
             <xsl:variable name="xpath" as="xs:string">
                 <xsl:choose>
-                    <xsl:when test="map:get($this-output,'@value')">
-                        <xsl:sequence select="map:get($this-output,'@value')"/>
+                    <xsl:when test="exists($xpath-ref) and exists($xpath-value)">
+                        <xsl:sequence select="xforms:resolveXPathStrings($xpath-ref,$xpath-value)"/>
                     </xsl:when>
-                    <xsl:when test="map:get($this-output,'@ref')">
-                        <xsl:sequence select="map:get($this-output,'@ref')"/>
+                    <xsl:when test="exists($xpath-value)">
+                        <xsl:sequence select="$xpath-value"/>
+                    </xsl:when>
+                    <xsl:when test="exists($xpath-ref)">
+                        <xsl:sequence select="$xpath-ref"/>
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:sequence select="''"/>
@@ -2995,7 +3007,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:variable>
-            
+                        
             <xsl:variable name="xpath-mod" as="xs:string" select="xforms:impose('string(' || $xpath || ')')"/>
             
             <xsl:message use-when="$debugMode"><xsl:sequence select="$log-label"/> $xpath-mod = '<xsl:sequence select="$xpath-mod"/>'</xsl:message>
@@ -3009,11 +3021,10 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 the string value is '' for false() or 'true' for true()
             -->
             <xsl:variable name="value" as="xs:string?" select="xforms:evaluate-xpath-with-instance-id($xpath-mod,$this-instance-id,$default-namespace-context)"/>
-            
             <xsl:variable name="data-type" as="xs:string?" select="map:get($this-output,'@data-type')"/>
             
             <xsl:variable name="itemset" as="element(xforms:itemset)?" select="map:get($this-output,'itemset')"/>
-                        
+            
             <xsl:variable name="associated-form-control" select="ixsl:page()//*[@id = $this-key]" as="node()?"/>
                         
             <xsl:choose>
@@ -3029,6 +3040,9 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                                 <xsl:with-param name="default-namespace-context" select="$namespace-context-item" tunnel="yes"/>
                             </xsl:apply-templates>
                         </xsl:result-document>
+                        <xsl:apply-templates select="$associated-form-control" mode="set-field">
+                            <xsl:with-param name="value" select="$value" tunnel="yes"/>
+                        </xsl:apply-templates>
                     </xsl:if>
                     
                     <xsl:sequence select="js:setValue($this-key,$value)"/>
@@ -3066,7 +3080,16 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 </xsl:call-template>
             </xsl:variable>
             
-            <ixsl:set-attribute name="class" select="$htmlClass" object="$associated-form-control"/>
+            <xsl:variable name="htmlWrapper" as="element()?" select="$associated-form-control/parent::*"/>
+            
+            <xsl:if test="exists($htmlWrapper) and ($associated-form-control[self::xhtml:input or self::xhtml:textarea or self::xhtml:select])">
+                <ixsl:set-attribute name="class" select="$htmlClass" object="$htmlWrapper"/>
+            </xsl:if>
+            
+            <xsl:if test="$associated-form-control[self::xhtml:input or self::xhtml:textarea]">
+                <ixsl:set-attribute name="class" select="$htmlClass" object="$associated-form-control"/>
+            </xsl:if>
+            
             
         </xsl:for-each>
         
@@ -3463,6 +3486,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         
         <xsl:sequence use-when="$debugTiming" select="js:startTime($time-id-register-outputs)" />
         
+        <!--  and not(ancestor::xforms:*[xforms:usesIndexFunction(.)]) -->
         <xsl:if test="not(ancestor::xforms:repeat)">
             <xsl:variable name="output-map" as="map(*)">
                 <xsl:map>
@@ -3497,7 +3521,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                     </xsl:if>
                 </xsl:map>
             </xsl:variable>
-            
+                        
             <xsl:message use-when="$debugMode">
                 <xsl:sequence select="concat('[registerOutput] Registering output with ID ', $id)"/>
             </xsl:message>
@@ -3948,10 +3972,6 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="xforms-doc" as="element()" select="js:getXFormsDoc()/*"/>
         
         
-        <xsl:call-template name="refreshOutputs-JS">
-            <xsl:with-param name="default-namespace-context" as="element()" select="$xforms-doc" tunnel="yes"/>
-            <xsl:with-param name="bindings-js" select="js:getBindings()" as="element(xforms:bind)*" tunnel="yes"/>
-        </xsl:call-template>
         <xsl:call-template name="refreshRepeats-JS">
             <xsl:with-param name="default-namespace-context" as="element()" select="$xforms-doc" tunnel="yes"/>
             <xsl:with-param name="bindings-js" select="js:getBindings()" as="element(xforms:bind)*" tunnel="yes"/>
@@ -3964,6 +3984,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:with-param name="default-namespace-context" as="element()" select="$xforms-doc" tunnel="yes"/>
             <xsl:with-param name="bindings-js" select="js:getBindings()" as="element(xforms:bind)*" tunnel="yes"/>
         </xsl:call-template>
+        <xsl:call-template name="refreshOutputs-JS">
+            <xsl:with-param name="default-namespace-context" as="element()" select="$xforms-doc" tunnel="yes"/>
+            <xsl:with-param name="bindings-js" select="js:getBindings()" as="element(xforms:bind)*" tunnel="yes"/>
+        </xsl:call-template>
+        
     </xsl:template>
     
     <xd:doc scope="component">
