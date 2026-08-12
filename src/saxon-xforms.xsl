@@ -1396,7 +1396,8 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="model-ref" as="xs:string" select="map:get($properties,'model-id')"/>
         <xsl:variable name="bindingi" as="element(xforms:bind)?" select="map:get($properties,'binding')"/>
         
-        <xsl:if test="xforms:usesIndexFunction(.) and not(ancestor::*[xforms:usesIndexFunction(.)])">
+        <xsl:if test="xforms:usesIndexFunction(.) and not(ancestor::*[xforms:usesIndexFunction(.)] or ancestor::xforms:repeat)">
+            <!--<xsl:message>js:setElementUsingIndexFunction  executed for ID '<xsl:value-of select="$myid"/>'</xsl:message>-->
             <xsl:sequence select="js:setElementUsingIndexFunction($myid,.)"/>
             <xsl:sequence select="js:setElementContextUsingIndexFunction($myid,$refi)"/>
         </xsl:if>
@@ -1469,7 +1470,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 <xsl:otherwise/>
             </xsl:choose>
         </xsl:variable>
-                
+                        
         <xsl:sequence use-when="$debugTiming" select="js:endTime($time-id-instance-field)" />
         
         
@@ -1490,7 +1491,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
-                
+        
         <xsl:sequence use-when="$debugTiming" select="js:endTime($time-id-get-value)" />
         
         <xsl:variable name="time-id-get-relevant" as="xs:string" select="concat('XForms ', local-name(), ' get relevant status ', generate-id())"/>
@@ -2266,7 +2267,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
-<!--                <xsl:message>[xforms:repeat] Setting index of <xsl:sequence select="$myid"/> to '<xsl:sequence select="$this-index"/>'</xsl:message>-->
+                <!--<xsl:message>[xforms:repeat] Setting index of <xsl:sequence select="$myid"/> to '<xsl:sequence select="$this-index"/>'</xsl:message>-->
                 <xsl:sequence select="js:setRepeatIndex($myid, $this-index)"/>
             </xsl:otherwise>
         </xsl:choose>
@@ -2288,6 +2289,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="repeat-items" as="element()*">
             <xsl:variable name="this" as="element(xforms:repeat)" select="."/>
             <xsl:for-each select="$selectedRepeatVar">
+                <xsl:sequence select="js:setRepeatIndex($myid, position())"/>
                 <xsl:variable name="string-position" as="xs:string" select="string(position())"/>
                 <xsl:variable name="new-context-position" as="xs:string" select="if ($context-position != '') then concat($context-position, '.', $string-position) else $string-position"/>
                 <xsl:message use-when="$debugMode">[xforms:repeat] $context-position = '<xsl:sequence select="$context-position"/>'; $new-context-position = '<xsl:sequence select="$new-context-position"/>'</xsl:message>
@@ -2757,7 +2759,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             https://www.mulberrytech.com/quickref/regex.pdf
             
             -->
-            <xsl:analyze-string select="$this/(@ref|@nodeset|@data-ref)[1]" regex="\i\c*\(">
+            <xsl:analyze-string select="$this/(@ref|@nodeset|@data-ref|@value)[1]" regex="\i\c*\(">
                 <xsl:matching-substring>
                     <xsl:choose>
                         <xsl:when test="substring-before(.,'(')= 'index'">
@@ -3063,12 +3065,13 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                 the string value is '' for false() or 'true' for true()
             -->
             <xsl:variable name="value" as="xs:string?" select="xforms:evaluate-xpath-with-instance-id($xpath-mod,$this-instance-id,$default-namespace-context)"/>
+            
             <xsl:variable name="data-type" as="xs:string?" select="map:get($this-output,'@data-type')"/>
             
             <xsl:variable name="itemset" as="element(xforms:itemset)?" select="map:get($this-output,'itemset')"/>
             
             <xsl:variable name="associated-form-control" select="ixsl:page()//*[@id = $this-key]" as="node()?"/>
-                        
+            
             <xsl:choose>
                 <xsl:when test="exists($associated-form-control) and local-name($associated-form-control) = ('input') and $data-type eq 'checkbox'">
                     <xsl:sequence select="js:setCheckboxValue($this-key,$value)"/>

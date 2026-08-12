@@ -101,7 +101,9 @@
                 
         <!-- call to js:getRepeatIndex doesn't work on first pass for some reason -->
         <xsl:variable name="repeat-index" as="xs:double?" select="js:getRepeatIndex($repeatID)"/>
-                
+               
+        <!--<xsl:message>[xforms:index()] Index of '<xsl:value-of select="$repeatID"/>' = '<xsl:value-of select="$repeat-index"/>'</xsl:message>-->
+        
         <!-- assign value '0' if $repeat-index does not exist -->
         <xsl:sequence select="if (exists($repeat-index)) then xs:integer($repeat-index) else 0"/>
         
