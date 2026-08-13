@@ -463,6 +463,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:call-template name="outermost-action-handler">
             <xsl:with-param name="default-namespace-context" as="element()" select="js:getXFormsDoc()/*" tunnel="yes"/>
         </xsl:call-template>
+         
     </xsl:template>
     
     
@@ -2247,12 +2248,13 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="model-ref" as="xs:string" select="map:get($properties,'model-id')"/>
         <xsl:variable name="namespace-context" as="element()" select="map:get($properties,'namespace-context')"/>
         
+        
         <!-- set the starting index value -->        
         <xsl:choose>
             <xsl:when test="$recalculate">
-<!--                <xsl:message use-when="$debugMode">[xforms:repeat] Index of item '<xsl:sequence select="$myid"/>' is <xsl:value-of select="js:getRepeatIndex($myid)"/></xsl:message>-->
+                <!-- leave current selection unchanged -->
             </xsl:when>
-            <xsl:otherwise>
+            <xsl:otherwise> 
                 <xsl:variable name="this-index" as="xs:double">
                     <xsl:choose>
                         <xsl:when test="not(exists(@startindex))">
@@ -2289,7 +2291,6 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="repeat-items" as="element()*">
             <xsl:variable name="this" as="element(xforms:repeat)" select="."/>
             <xsl:for-each select="$selectedRepeatVar">
-                <xsl:sequence select="js:setRepeatIndex($myid, position())"/>
                 <xsl:variable name="string-position" as="xs:string" select="string(position())"/>
                 <xsl:variable name="new-context-position" as="xs:string" select="if ($context-position != '') then concat($context-position, '.', $string-position) else $string-position"/>
                 <xsl:message use-when="$debugMode">[xforms:repeat] $context-position = '<xsl:sequence select="$context-position"/>'; $new-context-position = '<xsl:sequence select="$new-context-position"/>'</xsl:message>
@@ -3160,8 +3161,6 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:variable name="this-repeat-model" as="xs:string" select="js:getRepeatModelContext($this-key)"/>
             
             <xsl:variable name="page-element" select="ixsl:page()//*[@id = $this-key]" as="node()*"/>
-            
-            
             <xsl:choose>
                 <xsl:when test="count($page-element) = 1">
                     <xsl:result-document href="#{$this-key}" method="ixsl:replace-content">
@@ -4016,7 +4015,6 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     <xsl:template name="xforms-refresh">
         <xsl:variable name="xforms-doc" as="element()" select="js:getXFormsDoc()/*"/>
         
-        
         <xsl:call-template name="refreshRepeats-JS">
             <xsl:with-param name="default-namespace-context" as="element()" select="$xforms-doc" tunnel="yes"/>
             <xsl:with-param name="bindings-js" select="js:getBindings()" as="element(xforms:bind)*" tunnel="yes"/>
@@ -4412,7 +4410,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             <xsl:call-template name="xforms-refresh"/>
             
         </xsl:if>
-       
+        
         
         <xsl:sequence select="js:clearDeferredUpdateFlags()"/>
         
@@ -4767,7 +4765,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             </xsl:choose>
         </xsl:variable>
         
-<!--        <xsl:message use-when="$debugMode">[xforms-value-changed] Updated XML: <xsl:sequence select="serialize($updatedInstanceXML)"/></xsl:message>-->
+        <xsl:message use-when="$debugMode">[xforms-value-changed] Updated XML: <xsl:sequence select="serialize($updatedInstanceXML)"/></xsl:message>
         
         <xsl:sequence select="js:setInstance($instance-id,$updatedInstanceXML)"/>
 
