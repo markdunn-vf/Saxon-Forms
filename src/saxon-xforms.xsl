@@ -2249,30 +2249,25 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="namespace-context" as="element()" select="map:get($properties,'namespace-context')"/>
         
         
-        <!-- set the starting index value -->        
-        <xsl:choose>
-            <xsl:when test="$recalculate">
-                <!-- leave current selection unchanged -->
-            </xsl:when>
-            <xsl:otherwise> 
-                <xsl:variable name="this-index" as="xs:double">
-                    <xsl:choose>
-                        <xsl:when test="not(exists(@startindex))">
-                            <xsl:sequence select="1"/>
-                        </xsl:when>
-                        <xsl:when test="@startindex castable as xs:double">
-                            <xsl:value-of select="number(@startindex)"/>
-                        </xsl:when>
-                        <xsl:otherwise>
-<!--                            <xsl:message>[xforms:repeat] value of @startindex ('<xsl:value-of select="@startindex"/>') is not a number. Setting the index to '1'</xsl:message>-->
-                            <xsl:value-of select="1"/>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                </xsl:variable>
-                <!--<xsl:message>[xforms:repeat] Setting index of <xsl:sequence select="$myid"/> to '<xsl:sequence select="$this-index"/>'</xsl:message>-->
-                <xsl:sequence select="js:setRepeatIndex($myid, $this-index)"/>
-            </xsl:otherwise>
-        </xsl:choose>
+        <!-- set the starting index value -->   
+        <xsl:variable name="this-index" as="xs:double">
+           <xsl:choose>
+               <xsl:when test="$recalculate">
+                   <!-- leave current selection unchanged -->
+                   <xsl:sequence select="js:getRepeatIndex($myid)"/>
+               </xsl:when>
+               <xsl:when test="not(exists(@startindex))">
+                    <xsl:sequence select="1"/>
+                </xsl:when>
+                <xsl:when test="@startindex castable as xs:double">
+                    <xsl:value-of select="number(@startindex)"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <!--                            <xsl:message>[xforms:repeat] value of @startindex ('<xsl:value-of select="@startindex"/>') is not a number. Setting the index to '1'</xsl:message>-->
+                    <xsl:value-of select="1"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         
 
         <!-- identify instance fields corresponding to this -->
@@ -2291,6 +2286,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="repeat-items" as="element()*">
             <xsl:variable name="this" as="element(xforms:repeat)" select="."/>
             <xsl:for-each select="$selectedRepeatVar">
+                <!-- 
+                    Temporarily set index to current position when generating HTML 
+                    in case index() function is used here
+                -->
+                <xsl:sequence select="js:setRepeatIndex($myid, position())"/>
                 <xsl:variable name="string-position" as="xs:string" select="string(position())"/>
                 <xsl:variable name="new-context-position" as="xs:string" select="if ($context-position != '') then concat($context-position, '.', $string-position) else $string-position"/>
                 <xsl:message use-when="$debugMode">[xforms:repeat] $context-position = '<xsl:sequence select="$context-position"/>'; $new-context-position = '<xsl:sequence select="$new-context-position"/>'</xsl:message>
@@ -2350,6 +2350,8 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <!-- register size of repeat -->
         <xsl:sequence select="js:setRepeatSize($myid,count($selectedRepeatVar))"/>
         
+        <!-- set index  -->
+        <xsl:sequence select="js:setRepeatIndex($myid, $this-index)"/>
         
     </xsl:template>
 
