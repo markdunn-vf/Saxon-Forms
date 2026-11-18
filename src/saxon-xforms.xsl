@@ -1225,6 +1225,10 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             https://www.saxonica.com/saxon-js/documentation2/index.html#!development/http
         -->
         <xsl:variable name="response-headers" select="?headers" as="map(*)"/>
+        <xsl:variable name="response-status" select="?status" as="xs:double"/>
+        <xsl:variable name="response-message" select="?message" as="xs:string"/>
+       <!-- <xsl:message use-when="$debugMode">[HTTPsubmit] response headers: <xsl:sequence select="string-join(map:keys($response-headers),', ')"/></xsl:message>-->
+        <xsl:message use-when="$debugMode">[HTTPsubmit] response status: <xsl:sequence select="$response-status || ' ' || $response-message"/></xsl:message>
         <!--<xsl:message use-when="$debugMode">[HTTPsubmit] response media type: <xsl:sequence select="map:get($response-headers,'media-type')"/></xsl:message>-->
         
         <!-- 
@@ -1236,6 +1240,12 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="response" select="?body" as="item()?"/>  
          
         <xsl:choose>
+            <xsl:when test="$response-status != 200">
+                <xsl:message>++++++++++++ ERROR <xsl:value-of select="$response-status"/> +++++++++++++</xsl:message>
+                <xsl:call-template name="serverError">
+                      <xsl:with-param name="responseMap" select="."/>
+                  </xsl:call-template>
+            </xsl:when>
               <xsl:when test="empty($response)">
                   <xsl:message>++++++++++++ ERROR +++++++++++++</xsl:message>
                   <!--<xsl:call-template name="serverError">
@@ -1255,7 +1265,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                           <xsl:sequence select="js:setInstance($instance-id,$response/*)"/>
                           <!--<xsl:sequence select="js:debugAlert('Instance ID replace ' || $instance-id || ' with ' || serialize(js:getInstance($instance-id)))"/>-->
                           
-                         <!--<xsl:message use-when="$debugMode">[HTTPsubmit] response body: <xsl:value-of select="serialize($response)"/></xsl:message>-->
+                         <xsl:message use-when="$debugMode">[HTTPsubmit] response body: <xsl:value-of select="serialize($response)"/></xsl:message>
                       </xsl:when>
                       <xsl:when test="$replace = 'text' and exists($targetref) and $response castable as xs:string">
                           <!--<xsl:message use-when="$debugMode">[HTTPsubmit] response text: <xsl:sequence select="$response"/></xsl:message>-->
@@ -1307,6 +1317,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     <xsl:template name="serverError">
         <xsl:param name="responseMap" as="map(*)"/>
         <xsl:message>Server side error HTTP response - <xsl:value-of select="concat($responseMap?status, ' ', $responseMap?message)"/></xsl:message>
+        <xsl:message>Server side error HTTP response body - <xsl:value-of select="serialize($responseMap?body)"/></xsl:message>
     </xsl:template>
 
 
@@ -1919,10 +1930,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
     <xd:doc scope="component">
         <xd:desc>
             <xd:p>Render xforms:label as HTML label</xd:p>
-            <xd:p>TODO: implement @for</xd:p>
         </xd:desc>
+        <xd:param name="id">ID of HTML element (used in HTML label/@for).</xd:param>
     </xd:doc>
     <xsl:template match="xforms:label">
+        <xsl:param name="id" as="xs:string?" tunnel="yes"/>
         <xsl:variable name="properties" as="map(*)">
             <xsl:apply-templates select="." mode="get-properties"/>
         </xsl:variable>
@@ -1957,6 +1969,9 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
             </xsl:when>
             <xsl:otherwise>
                 <label>
+                    <xsl:if test="exists($id) and $id ne ''">
+                        <xsl:attribute name="for" select="$id"/>
+                    </xsl:if>
                     <xsl:copy-of select="@class"/>
                     <xsl:sequence select="$label"/>
                 </label>
@@ -4122,7 +4137,7 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
         <xsl:variable name="required-fields-check" as="item()*" select="if (exists($instanceXML-submit)) then xforms:check-required-fields($instanceXML-submit) else ()"/>
         <xsl:variable name="constrained-fields-check" as="item()*" select="if (exists($instanceXML-submit)) then xforms:check-constraints-on-fields($instanceXML-submit,$default-namespace-context) else ()"/>
         
-        <xsl:message use-when="$debugMode">[xforms-submit] Submitting instance XML: <xsl:value-of select="serialize($instanceXML-submit)"/></xsl:message>                     
+        <!--<xsl:message use-when="$debugMode">[xforms-submit] Submitting instance XML: <xsl:value-of select="serialize($instanceXML-submit)"/></xsl:message>-->                     
         <xsl:choose>
             <xsl:when test="empty($required-fields-check) and empty($constrained-fields-check)">
                 
@@ -4198,11 +4213,11 @@ doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
                         <xsl:if test="not( upper-case($method) = 'GET')">
                             <xsl:choose>
                                 <xsl:when test="exists($requestBodyDoc)">
-                                    <xsl:message use-when="$debugMode">[xforms-submit] Method <xsl:value-of select="$method"/>: body of HTTPrequest = <xsl:sequence select="fn:serialize($requestBodyDoc)"/></xsl:message>
+                                    <!--<xsl:message use-when="$debugMode">[xforms-submit] Method <xsl:value-of select="$method"/>: body of HTTPrequest = <xsl:sequence select="fn:serialize($requestBodyDoc)"/></xsl:message>-->
                                     <xsl:map-entry key="'body'" select="$requestBodyDoc"/>       
                                 </xsl:when>
                                 <xsl:otherwise>
-                                    <xsl:message use-when="$debugMode">[xforms-submit] (element) body of HTTPrequest = <xsl:sequence select="fn:serialize($requestBody)"/></xsl:message>
+                                    <!--<xsl:message use-when="$debugMode">[xforms-submit] (element) body of HTTPrequest = <xsl:sequence select="fn:serialize($requestBody)"/></xsl:message>-->
                                     <xsl:map-entry key="'body'" select="$requestBody"/>
                                 </xsl:otherwise>
                             </xsl:choose>
